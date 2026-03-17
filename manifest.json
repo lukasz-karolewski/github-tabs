@@ -5,7 +5,8 @@
   "description": "Consolidate all GitHub tabs into the current window, deduplicate, and sort.",
   "permissions": ["tabs"],
   "background": {
-    "service_worker": "background.js"
+    "service_worker": "background.js",
+    "type": "module"
   },
   "action": {
     "default_title": "Consolidate GitHub Tabs",

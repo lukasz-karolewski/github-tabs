@@ -1,0 +1,20 @@
+{
+  "name": "github-tabs",
+  "version": "1.0.0",
+  "description": "A Chrome extension that consolidates all GitHub tabs into the current window, deduplicates them, and sorts them by URL.",
+  "main": "background.js",
+  "scripts": {
+    "test": "vitest run"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git@github-private:lukasz-karolewski/github-tabs.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "type": "commonjs",
+  "devDependencies": {
+    "vitest": "^4.1.0"
+  }
+}
