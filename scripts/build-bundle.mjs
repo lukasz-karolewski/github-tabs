@@ -30,6 +30,22 @@ function run(command, args) {
   return true;
 }
 
+function runPythonZip(outputPath, inputFiles) {
+  const script = [
+    'from pathlib import Path',
+    'import sys',
+    'import zipfile',
+    '',
+    'output = Path(sys.argv[1])',
+    'files = [Path(path) for path in sys.argv[2:]]',
+    'with zipfile.ZipFile(output, "w", compression=zipfile.ZIP_DEFLATED) as archive:',
+    '    for file_path in files:',
+    '        archive.write(file_path, arcname=file_path.as_posix())',
+  ].join('\n');
+
+  return run('python3', ['-c', script, outputPath, ...inputFiles]);
+}
+
 rmSync('dist', { force: true, recursive: true });
 mkdirSync(dirname(outputFile), { recursive: true });
 
@@ -37,7 +53,7 @@ const files = bundleEntries.flatMap(collectFiles);
 
 // Prefer the standard zip CLI when present; fall back to Python's stdlib zipfile module.
 if (!run('zip', ['-r', outputFile, ...bundleEntries])) {
-  if (!run('python3', ['-m', 'zipfile', '-c', outputFile, ...files])) {
+  if (!runPythonZip(outputFile, files)) {
     console.error('Unable to create zip archive. Install zip or python3 and retry.');
     process.exit(1);
   }
