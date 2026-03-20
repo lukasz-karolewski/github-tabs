@@ -29,11 +29,7 @@ jobs:
         run: npm test
 
       - name: Package extension
-        run: |
-          rm -rf dist
-          mkdir -p dist
-          # Package only the files loaded by the extension so test and repo-only files are not uploaded.
-          zip -r dist/github-tabs.zip manifest.json background.js consolidate.js icons
+        run: npm run build:bundle
 
       - name: Publish to Chrome Web Store
         uses: puzzlers-labs/chrome-webstore-publish@010fc578dea8e3a05e15af75b836be821ee9ab74 # v1.2.5
