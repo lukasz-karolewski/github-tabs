@@ -3,7 +3,7 @@
   "name": "GitHub Tabs",
   "version": "1.0",
   "description": "Consolidate all GitHub tabs into the current window, deduplicate, and sort.",
-  "permissions": ["tabs"],
+  "permissions": ["tabs", "tabGroups"],
   "background": {
     "service_worker": "background.js",
     "type": "module"

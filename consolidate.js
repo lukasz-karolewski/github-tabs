@@ -14,6 +14,7 @@ export async function consolidateTabs(chromeApi, currentWindowId) {
   }
 
   // Deduplicate PR tabs — collapse /pull/123/* into /pull/123
+  const prUrls = new Set();
   const prPattern = /^(https:\/\/github\.com\/.+\/pull\/\d+)(\/.*)?$/;
   const prGroups = new Map();
   for (const [url, tab] of seen) {
@@ -25,6 +26,7 @@ export async function consolidateTabs(chromeApi, currentWindowId) {
     }
   }
   for (const [baseUrl, entries] of prGroups) {
+    prUrls.add(baseUrl);
     if (entries.length === 1 && !entries[0].hasSubpath) continue;
     const base = entries.find((e) => !e.hasSubpath);
     if (base) {
@@ -71,6 +73,33 @@ export async function consolidateTabs(chromeApi, currentWindowId) {
       windowId: currentWindowId,
       index: -1,
     });
+  }
+
+  // Group PR tabs
+  const prTabIds = uniqueTabs
+    .filter((t) => prUrls.has(t.url))
+    .map((t) => t.id);
+  if (prTabIds.length > 0) {
+    const existingGroups = await chromeApi.tabGroups.query({
+      title: "PRs",
+      windowId: currentWindowId,
+    });
+    const openGroup = existingGroups.find((g) => !g.collapsed);
+
+    if (openGroup) {
+      await chromeApi.tabs.group({ tabIds: prTabIds, groupId: openGroup.id });
+    } else {
+      const groupId = await chromeApi.tabs.group({ tabIds: prTabIds });
+      const title =
+        existingGroups.length > 0
+          ? `PRs ${new Date().toLocaleDateString()}`
+          : "PRs";
+      await chromeApi.tabGroups.update(groupId, {
+        title,
+        color: "purple",
+        collapsed: false,
+      });
+    }
   }
 
   // Close any windows that are now empty

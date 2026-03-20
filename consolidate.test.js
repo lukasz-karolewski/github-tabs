@@ -23,6 +23,11 @@ function mockChrome(tabs) {
       }),
       update: vi.fn(async () => {}),
       move: vi.fn(async () => {}),
+      group: vi.fn(async () => 100),
+    },
+    tabGroups: {
+      query: vi.fn(async () => []),
+      update: vi.fn(async () => {}),
     },
     windows: {
       remove: vi.fn(async () => {}),
@@ -220,6 +225,110 @@ describe("window cleanup", () => {
     await consolidateTabs(chrome, 1);
 
     expect(chrome.windows.remove).not.toHaveBeenCalled();
+  });
+});
+
+describe("PR tab grouping", () => {
+  it("creates a new 'PRs' group when no existing group", async () => {
+    const tabs = [
+      tab("https://github.com/org/repo/pull/1"),
+      tab("https://github.com/org/repo/pull/2"),
+    ];
+    const chrome = mockChrome(tabs);
+    await consolidateTabs(chrome, 1);
+
+    expect(chrome.tabGroups.query).toHaveBeenCalledWith({
+      title: "PRs",
+      windowId: 1,
+    });
+    expect(chrome.tabs.group).toHaveBeenCalledWith({
+      tabIds: [1, 2],
+    });
+    expect(chrome.tabGroups.update).toHaveBeenCalledWith(100, {
+      title: "PRs",
+      color: "purple",
+      collapsed: false,
+    });
+  });
+
+  it("reuses an existing open 'PRs' group", async () => {
+    const tabs = [
+      tab("https://github.com/org/repo/pull/1"),
+      tab("https://github.com/org/repo/pull/2"),
+    ];
+    const chrome = mockChrome(tabs);
+    chrome.tabGroups.query.mockResolvedValue([
+      { id: 50, title: "PRs", collapsed: false },
+    ]);
+    await consolidateTabs(chrome, 1);
+
+    expect(chrome.tabs.group).toHaveBeenCalledWith({
+      tabIds: [1, 2],
+      groupId: 50,
+    });
+    expect(chrome.tabGroups.update).not.toHaveBeenCalled();
+  });
+
+  it("creates a dated group when a collapsed 'PRs' group exists", async () => {
+    const tabs = [
+      tab("https://github.com/org/repo/pull/1"),
+    ];
+    const chrome = mockChrome(tabs);
+    chrome.tabGroups.query.mockResolvedValue([
+      { id: 50, title: "PRs", collapsed: true },
+    ]);
+    await consolidateTabs(chrome, 1);
+
+    expect(chrome.tabs.group).toHaveBeenCalledWith({
+      tabIds: [1],
+    });
+    expect(chrome.tabGroups.update).toHaveBeenCalledWith(100, {
+      title: `PRs ${new Date().toLocaleDateString()}`,
+      color: "purple",
+      collapsed: false,
+    });
+  });
+
+  it("does not create a group when there are no PR tabs", async () => {
+    const tabs = [
+      tab("https://github.com/org/repo/issues/1"),
+      tab("https://github.com/org/repo/issues/2"),
+    ];
+    const chrome = mockChrome(tabs);
+    await consolidateTabs(chrome, 1);
+
+    expect(chrome.tabs.group).not.toHaveBeenCalled();
+    expect(chrome.tabGroups.update).not.toHaveBeenCalled();
+  });
+
+  it("groups the surviving tab after PR dedup", async () => {
+    const tabs = [
+      tab("https://github.com/org/repo/pull/1"),
+      tab("https://github.com/org/repo/pull/1/files"),
+      tab("https://github.com/org/repo/pull/1/commits"),
+    ];
+    const chrome = mockChrome(tabs);
+    await consolidateTabs(chrome, 1);
+
+    // Only the base tab survives
+    expect(chrome.tabs.group).toHaveBeenCalledWith({
+      tabIds: [1],
+    });
+  });
+
+  it("groups mixed PR and non-PR tabs correctly", async () => {
+    const tabs = [
+      tab("https://github.com/org/repo/issues/5"),
+      tab("https://github.com/org/repo/pull/10"),
+      tab("https://github.com/org/repo/pull/20"),
+    ];
+    const chrome = mockChrome(tabs);
+    await consolidateTabs(chrome, 1);
+
+    // Only PR tabs are grouped, sorted by URL (pull/10 before pull/20)
+    expect(chrome.tabs.group).toHaveBeenCalledWith({
+      tabIds: [2, 3],
+    });
   });
 });
 
