@@ -14,10 +14,10 @@ jobs:
 
     steps:
       - name: Check out repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
 
       - name: Set up Node.js
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
         with:
           node-version: 22
           cache: npm
@@ -32,10 +32,11 @@ jobs:
         run: |
           rm -rf dist
           mkdir -p dist
+          # Package only the files loaded by the extension so test and repo-only files are not uploaded.
           zip -r dist/github-tabs.zip manifest.json background.js consolidate.js icons
 
       - name: Publish to Chrome Web Store
-        uses: puzzlers-labs/chrome-webstore-publish@v1
+        uses: puzzlers-labs/chrome-webstore-publish@010fc578dea8e3a05e15af75b836be821ee9ab74 # v1
         with:
           mode: publish
           extension_id: ${{ secrets.CHROME_EXTENSION_ID }}
