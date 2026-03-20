@@ -1,4 +1,4 @@
-export async function consolidateTabs(chromeApi, currentWindowId) {
+export async function consolidateTabs(chromeApi, currentWindowId, { groupBy = "prs" } = {}) {
   const ghTabs = await chromeApi.tabs.query({ url: "https://github.com/*" });
   if (ghTabs.length === 0) return;
 
@@ -75,30 +75,63 @@ export async function consolidateTabs(chromeApi, currentWindowId) {
     });
   }
 
-  // Group PR tabs
-  const prTabIds = uniqueTabs
-    .filter((t) => prUrls.has(t.url))
-    .map((t) => t.id);
-  if (prTabIds.length > 0) {
-    const existingGroups = await chromeApi.tabGroups.query({
-      title: "PRs",
-      windowId: currentWindowId,
-    });
-    const openGroup = existingGroups.find((g) => !g.collapsed);
-
-    if (openGroup) {
-      await chromeApi.tabs.group({ tabIds: prTabIds, groupId: openGroup.id });
-    } else {
-      const groupId = await chromeApi.tabs.group({ tabIds: prTabIds });
-      const title =
-        existingGroups.length > 0
-          ? `PRs ${new Date().toLocaleDateString()}`
-          : "PRs";
-      await chromeApi.tabGroups.update(groupId, {
-        title,
-        color: "purple",
-        collapsed: false,
+  // Group tabs
+  if (groupBy === "repo") {
+    const repoPattern = /^https:\/\/github\.com\/[^/]+\/([^/]+)/;
+    const repoGroups = new Map();
+    for (const tab of uniqueTabs) {
+      const match = tab.url.match(repoPattern);
+      if (match) {
+        const repoName = match[1];
+        if (!repoGroups.has(repoName)) repoGroups.set(repoName, []);
+        repoGroups.get(repoName).push(tab.id);
+      }
+    }
+    const colors = ["blue", "red", "yellow", "green", "pink", "purple", "cyan", "orange"];
+    let colorIndex = 0;
+    for (const [repoName, tabIds] of repoGroups) {
+      const existingGroups = await chromeApi.tabGroups.query({
+        title: repoName,
+        windowId: currentWindowId,
       });
+      const openGroup = existingGroups.find((g) => !g.collapsed);
+      if (openGroup) {
+        await chromeApi.tabs.group({ tabIds, groupId: openGroup.id });
+      } else {
+        const groupId = await chromeApi.tabs.group({ tabIds });
+        await chromeApi.tabGroups.update(groupId, {
+          title: repoName,
+          color: colors[colorIndex % colors.length],
+          collapsed: false,
+        });
+        colorIndex++;
+      }
+    }
+  } else {
+    const prTabIds = uniqueTabs
+      .filter((t) => prUrls.has(t.url))
+      .map((t) => t.id);
+    if (prTabIds.length > 0) {
+      const existingGroups = await chromeApi.tabGroups.query({
+        title: "PRs",
+        windowId: currentWindowId,
+      });
+      const openGroup = existingGroups.find((g) => !g.collapsed);
+
+      if (openGroup) {
+        await chromeApi.tabs.group({ tabIds: prTabIds, groupId: openGroup.id });
+      } else {
+        const groupId = await chromeApi.tabs.group({ tabIds: prTabIds });
+        const title =
+          existingGroups.length > 0
+            ? `PRs ${new Date().toLocaleDateString()}`
+            : "PRs";
+        await chromeApi.tabGroups.update(groupId, {
+          title,
+          color: "purple",
+          collapsed: false,
+        });
+      }
     }
   }
 

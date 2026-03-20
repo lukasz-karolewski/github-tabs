@@ -332,6 +332,77 @@ describe("PR tab grouping", () => {
   });
 });
 
+describe("repo name grouping", () => {
+  it("groups tabs by repo name regardless of org", async () => {
+    const tabs = [
+      tab("https://github.com/orgA/my-repo/issues/1"),
+      tab("https://github.com/orgB/my-repo/pull/2"),
+      tab("https://github.com/orgA/other-repo/issues/3"),
+    ];
+    const chrome = mockChrome(tabs);
+    await consolidateTabs(chrome, 1, { groupBy: "repo" });
+
+    expect(chrome.tabs.group).toHaveBeenCalledTimes(2);
+    expect(chrome.tabs.group).toHaveBeenCalledWith({ tabIds: [1, 2] });
+    expect(chrome.tabs.group).toHaveBeenCalledWith({ tabIds: [3] });
+  });
+
+  it("assigns different colors to different repos", async () => {
+    const tabs = [
+      tab("https://github.com/org/repo-a/issues/1"),
+      tab("https://github.com/org/repo-b/issues/2"),
+    ];
+    const chrome = mockChrome(tabs);
+    let groupCounter = 100;
+    chrome.tabs.group.mockImplementation(async () => groupCounter++);
+    await consolidateTabs(chrome, 1, { groupBy: "repo" });
+
+    expect(chrome.tabGroups.update).toHaveBeenCalledWith(100, {
+      title: "repo-a",
+      color: "blue",
+      collapsed: false,
+    });
+    expect(chrome.tabGroups.update).toHaveBeenCalledWith(101, {
+      title: "repo-b",
+      color: "red",
+      collapsed: false,
+    });
+  });
+
+  it("reuses an existing open group for a repo name", async () => {
+    const tabs = [
+      tab("https://github.com/org/my-repo/issues/1"),
+    ];
+    const chrome = mockChrome(tabs);
+    chrome.tabGroups.query.mockResolvedValue([
+      { id: 60, title: "my-repo", collapsed: false },
+    ]);
+    await consolidateTabs(chrome, 1, { groupBy: "repo" });
+
+    expect(chrome.tabs.group).toHaveBeenCalledWith({
+      tabIds: [1],
+      groupId: 60,
+    });
+    expect(chrome.tabGroups.update).not.toHaveBeenCalled();
+  });
+
+  it("does not group PRs separately when groupBy is repo", async () => {
+    const tabs = [
+      tab("https://github.com/org/repo/pull/1"),
+      tab("https://github.com/org/repo/issues/2"),
+    ];
+    const chrome = mockChrome(tabs);
+    await consolidateTabs(chrome, 1, { groupBy: "repo" });
+
+    // Both are grouped under "repo", not a "PRs" group
+    expect(chrome.tabs.group).toHaveBeenCalledWith({ tabIds: [2, 1] });
+    expect(chrome.tabGroups.query).toHaveBeenCalledWith({
+      title: "repo",
+      windowId: 1,
+    });
+  });
+});
+
 describe("no-op cases", () => {
   it("does nothing when there are no GitHub tabs", async () => {
     const chrome = mockChrome([]);
