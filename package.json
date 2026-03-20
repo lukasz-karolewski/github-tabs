@@ -4,6 +4,7 @@
   "description": "A Chrome extension that consolidates all GitHub tabs into the current window, deduplicates them, and sorts them by URL.",
   "main": "background.js",
   "scripts": {
+    "package": "rm -rf dist && mkdir -p dist && zip -r dist/github-tabs.zip manifest.json background.js consolidate.js icons",
     "test": "vitest run"
   },
   "repository": {
