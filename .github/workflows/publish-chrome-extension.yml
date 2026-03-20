@@ -1,0 +1,47 @@
+name: Publish Chrome extension
+
+on:
+  release:
+    types:
+      - published
+  workflow_dispatch:
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Run tests
+        run: npm test
+
+      - name: Package extension
+        run: |
+          rm -rf dist
+          mkdir -p dist
+          # Package only the files loaded by the extension so test and repo-only files are not uploaded.
+          zip -r dist/github-tabs.zip manifest.json background.js consolidate.js icons
+
+      - name: Publish to Chrome Web Store
+        uses: puzzlers-labs/chrome-webstore-publish@010fc578dea8e3a05e15af75b836be821ee9ab74 # v1
+        with:
+          mode: publish
+          extension_id: ${{ secrets.CHROME_EXTENSION_ID }}
+          zip_file_path: ./dist/github-tabs.zip
+          client_id: ${{ secrets.CHROME_EXTENSION_CLIENT_ID }}
+          client_secret: ${{ secrets.CHROME_EXTENSION_CLIENT_SECRET }}
+          refresh_token: ${{ secrets.CHROME_EXTENSION_REFRESH_TOKEN }}
+          publish_target: public
