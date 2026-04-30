@@ -15,6 +15,9 @@
   "author": "",
   "license": "ISC",
   "type": "commonjs",
+  "volta": {
+    "node": "24.7.0"
+  },
   "devDependencies": {
     "vitest": "^4.1.0"
   }

@@ -168,6 +168,46 @@ describe("PR tab deduplication", () => {
     expect(chrome.tabs.update).not.toHaveBeenCalled();
   });
 
+  it("closes fragment tabs when base PR tab exists", async () => {
+    const tabs = [
+      tab("https://github.com/org/repo/pull/10465"),
+      tab("https://github.com/org/repo/pull/10465#pullrequestreview-4207672801"),
+    ];
+    const chrome = mockChrome(tabs);
+    await consolidateTabs(chrome, 1);
+
+    expect(chrome.tabs.remove).toHaveBeenCalledWith(
+      expect.arrayContaining([2])
+    );
+    expect(chrome.tabs.update).not.toHaveBeenCalled();
+  });
+
+  it("navigates fragment-only tab to base URL when no base tab exists", async () => {
+    const tabs = [
+      tab("https://github.com/org/repo/pull/10465#pullrequestreview-4207672801"),
+    ];
+    const chrome = mockChrome(tabs);
+    await consolidateTabs(chrome, 1);
+
+    expect(chrome.tabs.update).toHaveBeenCalledWith(1, {
+      url: "https://github.com/org/repo/pull/10465",
+    });
+  });
+
+  it("deduplicates mixed fragment and sub-path tabs for the same PR", async () => {
+    const tabs = [
+      tab("https://github.com/org/repo/pull/10465"),
+      tab("https://github.com/org/repo/pull/10465#pullrequestreview-123"),
+      tab("https://github.com/org/repo/pull/10465/files"),
+    ];
+    const chrome = mockChrome(tabs);
+    await consolidateTabs(chrome, 1);
+
+    expect(chrome.tabs.remove).toHaveBeenCalledWith(
+      expect.arrayContaining([2, 3])
+    );
+  });
+
   it("handles deep sub-paths like /files/sha", async () => {
     const tabs = [
       tab("https://github.com/org/repo/pull/5"),

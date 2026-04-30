@@ -15,7 +15,7 @@ export async function consolidateTabs(chromeApi, currentWindowId, { groupBy = "p
 
   // Deduplicate PR tabs — collapse /pull/123/* into /pull/123
   const prUrls = new Set();
-  const prPattern = /^(https:\/\/github\.com\/.+\/pull\/\d+)(\/.*)?$/;
+  const prPattern = /^(https:\/\/github\.com\/.+\/pull\/\d+)(\/.*|#.*)?$/;
   const prGroups = new Map();
   for (const [url, tab] of seen) {
     const match = url.match(prPattern);
@@ -87,9 +87,12 @@ export async function consolidateTabs(chromeApi, currentWindowId, { groupBy = "p
         repoGroups.get(repoName).push(tab.id);
       }
     }
+    const sortedRepoGroups = [...repoGroups.entries()].sort((a, b) =>
+      a[0].localeCompare(b[0])
+    );
     const colors = ["blue", "red", "yellow", "green", "pink", "purple", "cyan", "orange"];
     let colorIndex = 0;
-    for (const [repoName, tabIds] of repoGroups) {
+    for (const [repoName, tabIds] of sortedRepoGroups) {
       const existingGroups = await chromeApi.tabGroups.query({
         title: repoName,
         windowId: currentWindowId,
@@ -107,6 +110,7 @@ export async function consolidateTabs(chromeApi, currentWindowId, { groupBy = "p
         colorIndex++;
       }
     }
+
   } else {
     const prTabIds = uniqueTabs
       .filter((t) => prUrls.has(t.url))
