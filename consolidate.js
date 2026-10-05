@@ -42,6 +42,7 @@ export async function consolidateTabs(chromeApi, currentWindowId, { groupBy = "p
       const [keep, ...rest] = entries;
       await chromeApi.tabs.update(keep.tab.id, { url: baseUrl });
       seen.delete(keep.tab.url);
+      keep.tab = { ...keep.tab, url: baseUrl };
       seen.set(baseUrl, keep.tab);
       for (const e of rest) {
         duplicateIds.push(e.tab.id);

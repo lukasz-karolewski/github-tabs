@@ -20,6 +20,18 @@ A Chrome extension that consolidates all GitHub tabs into the current window, de
 
 Click the extension icon in the toolbar. All GitHub tabs across all windows will be moved into the current window, deduplicated, and sorted.
 
+## Development
+
+Use Node.js 24.7.0, the version pinned in `package.json`, or a newer supported Node.js release. Tests run with Vitest 5.
+
+```sh
+npm ci
+npm test
+npm run build:bundle
+```
+
+For watch mode, run `npm test -- --watch`.
+
 ## Publishing
 
 This repository includes a GitHub Actions workflow at `.github/workflows/publish-chrome-extension.yml` that packages and publishes the extension to the Chrome Web Store when a GitHub release is published or when the workflow is run manually.
