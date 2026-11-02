@@ -40,7 +40,9 @@ For watch mode, run `npm test -- --watch`.
 
 ## Publishing
 
-This repository includes a GitHub Actions workflow at `.github/workflows/publish-chrome-extension.yml` that packages and publishes the extension to the Chrome Web Store when a GitHub release is published or when the workflow is run manually.
+This repository includes a GitHub Actions workflow at `.github/workflows/publish-chrome-extension.yml` that packages and publishes the extension to the Chrome Web Store on every push to `main` that changes a shipped file (`manifest.json`, `background.js`, `consolidate.js`, `deduplicate.js`, `icons/`, the bundle script, or the workflow itself). It can also be run manually.
+
+Each run publishes version `<major>.<minor>.<run number>`, taking `<major>.<minor>` from `manifest.json`, because the Chrome Web Store requires a higher version on every upload. To bump the major or minor version, edit `manifest.json`.
 
 Before using it, add these repository secrets:
 
