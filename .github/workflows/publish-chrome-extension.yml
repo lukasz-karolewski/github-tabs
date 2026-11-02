@@ -1,10 +1,23 @@
 name: Publish Chrome extension
 
 on:
-  release:
-    types:
-      - published
+  push:
+    branches:
+      - main
+    # Only publish when files shipped in the bundle (or the packaging itself) change.
+    paths:
+      - manifest.json
+      - background.js
+      - consolidate.js
+      - deduplicate.js
+      - icons/**
+      - scripts/build-bundle.mjs
+      - .github/workflows/publish-chrome-extension.yml
   workflow_dispatch:
+
+concurrency:
+  group: publish-chrome-extension
+  cancel-in-progress: false
 
 jobs:
   publish:
@@ -27,6 +40,21 @@ jobs:
 
       - name: Run tests
         run: npm test
+
+      # The Chrome Web Store requires a higher version on every upload, so stamp
+      # <major>.<minor> from manifest.json with the workflow run number.
+      - name: Set extension version
+        env:
+          RUN_NUMBER: ${{ github.run_number }}
+        run: |
+          node -e '
+            const fs = require("node:fs");
+            const manifest = JSON.parse(fs.readFileSync("manifest.json", "utf8"));
+            const [major = "0", minor = "0"] = manifest.version.split(".");
+            manifest.version = `${major}.${minor}.${process.env.RUN_NUMBER}`;
+            fs.writeFileSync("manifest.json", JSON.stringify(manifest, null, 2) + "\n");
+            console.log(`Publishing version ${manifest.version}`);
+          '
 
       - name: Package extension
         run: npm run build:bundle
