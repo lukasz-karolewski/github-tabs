@@ -3,7 +3,7 @@ import { dirname, join, relative } from 'node:path';
 import { spawnSync } from 'node:child_process';
 
 const outputFile = 'dist/github-tabs.zip';
-const bundleEntries = ['manifest.json', 'background.js', 'consolidate.js', 'icons'];
+const bundleEntries = ['manifest.json', 'background.js', 'consolidate.js', 'deduplicate.js', 'icons'];
 
 function collectFiles(entry) {
   const stats = statSync(entry);
