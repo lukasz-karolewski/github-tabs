@@ -1,6 +1,6 @@
 # GitHub Tabs
 
-A Chrome extension that consolidates all GitHub tabs into the current window, deduplicates them, and sorts them by URL.
+A Chrome extension that consolidates all GitHub tabs into the current window, deduplicates them, sorts them by URL, and closes duplicate non-GitHub tabs.
 
 ## Features
 
@@ -8,6 +8,7 @@ A Chrome extension that consolidates all GitHub tabs into the current window, de
 - **Deduplicate** — Removes duplicate tabs (same URL), keeping only the first occurrence
 - **Sort** — Arranges the consolidated tabs alphabetically by URL
 - **Clean up** — Closes windows left empty after tabs are moved
+- **Deduplicate other tabs** — Closes duplicate non-GitHub tabs (exact same URL) in the current window, keeping the left-most copy
 
 ## Install
 
@@ -18,7 +19,12 @@ A Chrome extension that consolidates all GitHub tabs into the current window, de
 
 ## Usage
 
-Click the extension icon in the toolbar. All GitHub tabs across all windows will be moved into the current window, deduplicated, and sorted.
+Click the extension icon in the toolbar. All GitHub tabs across all windows will be moved into the current window, deduplicated, sorted, and grouped. Duplicate non-GitHub tabs in the current window are then closed (the right-most copy is closed, the left-most is kept).
+
+Right-click the extension icon for more options:
+
+- **Group by PRs** / **Group by repo name** — choose how GitHub tabs are grouped
+- **Deduplicate now** — close duplicate non-GitHub tabs in the current window only, without consolidating or grouping GitHub tabs
 
 ## Development
 
