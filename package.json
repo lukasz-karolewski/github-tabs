@@ -5,7 +5,9 @@
   "main": "background.js",
   "scripts": {
     "build:bundle": "node ./scripts/build-bundle.mjs",
-    "test": "vitest run"
+    "test": "vitest run",
+    "lint": "biome check",
+    "lint:fix": "biome check --write"
   },
   "repository": {
     "type": "git",
@@ -19,6 +21,7 @@
     "node": "24.7.0"
   },
   "devDependencies": {
+    "@biomejs/biome": "2.6.6",
     "vitest": "^5.1.0"
   }
 }
