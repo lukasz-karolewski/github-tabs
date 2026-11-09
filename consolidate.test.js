@@ -1,4 +1,4 @@
-import { describe, it, expect, vi } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 import { consolidateTabs } from "./consolidate.js";
 
 function tab(url, windowId = 1) {
@@ -64,14 +64,10 @@ describe("exact URL deduplication", () => {
       removed: [2, 3],
     },
   ])("$name", async ({ paths, removed }) => {
-    const chrome = mockChrome(
-      paths.map((path) => tab(`https://github.com/org/repo/${path}`)),
-    );
+    const chrome = mockChrome(paths.map((path) => tab(`https://github.com/org/repo/${path}`)));
     await consolidateTabs(chrome, 1);
 
-    expect(chrome.tabs.remove.mock.calls).toEqual(
-      removed.length ? [[removed]] : [],
-    );
+    expect(chrome.tabs.remove.mock.calls).toEqual(removed.length ? [[removed]] : []);
     expect(chrome.tabs.update).not.toHaveBeenCalled();
     expect(chrome.tabs.move).toHaveBeenCalledExactlyOnceWith(
       paths.map((_, index) => index + 1).filter((id) => !removed.includes(id)),
@@ -157,12 +153,8 @@ describe("PR tab deduplication", () => {
     const chrome = mockChrome(suffixes.map((suffix) => tab(baseUrl + suffix)));
     await consolidateTabs(chrome, 1);
 
-    expect(chrome.tabs.remove.mock.calls).toEqual(
-      removed.length ? [[removed]] : [],
-    );
-    expect(chrome.tabs.update.mock.calls).toEqual(
-      navigate ? [[keep, { url: baseUrl }]] : [],
-    );
+    expect(chrome.tabs.remove.mock.calls).toEqual(removed.length ? [[removed]] : []);
+    expect(chrome.tabs.update.mock.calls).toEqual(navigate ? [[keep, { url: baseUrl }]] : []);
     expect(chrome.tabs.move).toHaveBeenCalledExactlyOnceWith([keep], {
       windowId: 1,
       index: -1,
@@ -261,10 +253,7 @@ describe("window cleanup", () => {
   });
 
   it("keeps windows containing non-GitHub tabs", async () => {
-    const chrome = mockChrome([
-      tab("https://github.com/org/repo", 2),
-      tab("https://example.com/", 2),
-    ]);
+    const chrome = mockChrome([tab("https://github.com/org/repo", 2), tab("https://example.com/", 2)]);
     await consolidateTabs(chrome, 1);
 
     expect(chrome.tabs.move).toHaveBeenCalledExactlyOnceWith([1], {
@@ -274,30 +263,22 @@ describe("window cleanup", () => {
     expect(chrome.windows.remove).not.toHaveBeenCalled();
   });
 
-  it.each(["query", "remove"])(
-    "continues cleanup when a window %s fails",
-    async (method) => {
-      const chrome = mockChrome([
-        tab("https://github.com/org/repo", 2),
-        tab("https://github.com/org/repo/issues/1", 3),
-      ]);
-      if (method === "query") {
-        chrome.tabs.query
-          .mockResolvedValueOnce([
-            { id: 1, url: "https://github.com/org/repo", windowId: 2 },
-            { id: 2, url: "https://github.com/org/repo/issues/1", windowId: 3 },
-          ])
-          .mockRejectedValueOnce(new Error("Window already closed"));
-      } else {
-        chrome.windows.remove.mockRejectedValueOnce(
-          new Error("Window already closed"),
-        );
-      }
+  it.each(["query", "remove"])("continues cleanup when a window %s fails", async (method) => {
+    const chrome = mockChrome([tab("https://github.com/org/repo", 2), tab("https://github.com/org/repo/issues/1", 3)]);
+    if (method === "query") {
+      chrome.tabs.query
+        .mockResolvedValueOnce([
+          { id: 1, url: "https://github.com/org/repo", windowId: 2 },
+          { id: 2, url: "https://github.com/org/repo/issues/1", windowId: 3 },
+        ])
+        .mockRejectedValueOnce(new Error("Window already closed"));
+    } else {
+      chrome.windows.remove.mockRejectedValueOnce(new Error("Window already closed"));
+    }
 
-      await expect(consolidateTabs(chrome, 1)).resolves.toBeUndefined();
-      expect(chrome.windows.remove).toHaveBeenCalledWith(3);
-    },
-  );
+    await expect(consolidateTabs(chrome, 1)).resolves.toBeUndefined();
+    expect(chrome.windows.remove).toHaveBeenCalledWith(3);
+  });
 });
 
 describe("PR tab grouping", () => {
@@ -328,10 +309,7 @@ describe("PR tab grouping", () => {
       groupId: 60,
     },
   ])("$name", async ({ groups, groupId, title }) => {
-    const chrome = mockChrome([
-      tab("https://github.com/org/repo/pull/1"),
-      tab("https://github.com/org/repo/pull/2"),
-    ]);
+    const chrome = mockChrome([tab("https://github.com/org/repo/pull/1"), tab("https://github.com/org/repo/pull/2")]);
     chrome.tabGroups.query.mockResolvedValue(groups);
     const date = new Date(2026, 5, 23, 12);
     vi.setSystemTime(date);
@@ -343,9 +321,7 @@ describe("PR tab grouping", () => {
         windowId: 1,
       });
       expect(chrome.tabs.group).toHaveBeenCalledExactlyOnceWith(
-        groupId === undefined
-          ? { tabIds: [1, 2] }
-          : { tabIds: [1, 2], groupId },
+        groupId === undefined ? { tabIds: [1, 2] } : { tabIds: [1, 2], groupId },
       );
       expect(chrome.tabGroups.update.mock.calls).toEqual(
         groupId === undefined
@@ -353,10 +329,7 @@ describe("PR tab grouping", () => {
               [
                 100,
                 {
-                  title:
-                    title === "dated"
-                      ? `PRs ${date.toLocaleDateString()}`
-                      : title,
+                  title: title === "dated" ? `PRs ${date.toLocaleDateString()}` : title,
                   color: "purple",
                   collapsed: false,
                 },
@@ -404,10 +377,7 @@ describe("repo name grouping", () => {
     ]);
     await consolidateTabs(chrome, 1, { groupBy: "repo" });
 
-    expect(chrome.tabs.group.mock.calls).toEqual([
-      [{ tabIds: [2, 3] }],
-      [{ tabIds: [1] }],
-    ]);
+    expect(chrome.tabs.group.mock.calls).toEqual([[{ tabIds: [2, 3] }], [{ tabIds: [1] }]]);
     expect(chrome.tabGroups.update.mock.calls).toEqual([
       [100, { title: "my-repo", color: "blue", collapsed: false }],
       [101, { title: "other-repo", color: "red", collapsed: false }],
@@ -416,9 +386,7 @@ describe("repo name grouping", () => {
 
   it("reuses an existing open group for a repo name", async () => {
     const chrome = mockChrome([tab("https://github.com/org/my-repo/issues/1")]);
-    chrome.tabGroups.query.mockResolvedValue([
-      { id: 60, title: "my-repo", collapsed: false },
-    ]);
+    chrome.tabGroups.query.mockResolvedValue([{ id: 60, title: "my-repo", collapsed: false }]);
     await consolidateTabs(chrome, 1, { groupBy: "repo" });
 
     expect(chrome.tabGroups.query).toHaveBeenCalledExactlyOnceWith({
@@ -433,10 +401,7 @@ describe("repo name grouping", () => {
   });
 
   it("groups PRs and issues together when groupBy is repo", async () => {
-    const chrome = mockChrome([
-      tab("https://github.com/org/repo/pull/1"),
-      tab("https://github.com/org/repo/issues/2"),
-    ]);
+    const chrome = mockChrome([tab("https://github.com/org/repo/pull/1"), tab("https://github.com/org/repo/issues/2")]);
     await consolidateTabs(chrome, 1, { groupBy: "repo" });
 
     expect(chrome.tabs.group).toHaveBeenCalledExactlyOnceWith({

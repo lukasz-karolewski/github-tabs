@@ -1,4 +1,4 @@
-import { describe, it, expect, vi } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 import { deduplicateTabs } from "./deduplicate.js";
 
 function mockChrome(inputTabs) {
@@ -10,9 +10,7 @@ function mockChrome(inputTabs) {
   }));
   return {
     tabs: {
-      query: vi.fn(async ({ windowId }) =>
-        tabs.filter((tab) => tab.windowId === windowId).map((tab) => ({ ...tab })),
-      ),
+      query: vi.fn(async ({ windowId }) => tabs.filter((tab) => tab.windowId === windowId).map((tab) => ({ ...tab }))),
       remove: vi.fn().mockResolvedValue(undefined),
     },
   };
@@ -54,10 +52,7 @@ describe("deduplicateTabs", () => {
   });
 
   it("does not touch GitHub tabs", async () => {
-    const chrome = mockChrome([
-      { url: "https://github.com/org/repo" },
-      { url: "https://github.com/org/repo" },
-    ]);
+    const chrome = mockChrome([{ url: "https://github.com/org/repo" }, { url: "https://github.com/org/repo" }]);
     await deduplicateTabs(chrome, 1);
 
     expect(chrome.tabs.remove).not.toHaveBeenCalled();

@@ -56,16 +56,10 @@ export async function consolidateTabs(chromeApi, currentWindowId, { groupBy = "p
   }
 
   // Sort unique tabs by URL
-  const uniqueTabs = [...seen.values()].sort((a, b) =>
-    a.url.localeCompare(b.url)
-  );
+  const uniqueTabs = [...seen.values()].sort((a, b) => a.url.localeCompare(b.url));
 
   // Collect window IDs that had GitHub tabs (excluding current window)
-  const affectedWindowIds = new Set(
-    ghTabs
-      .filter((t) => t.windowId !== currentWindowId)
-      .map((t) => t.windowId)
-  );
+  const affectedWindowIds = new Set(ghTabs.filter((t) => t.windowId !== currentWindowId).map((t) => t.windowId));
 
   // Move all unique tabs to current window in sorted order
   const tabIdsToMove = uniqueTabs.map((t) => t.id);
@@ -88,9 +82,7 @@ export async function consolidateTabs(chromeApi, currentWindowId, { groupBy = "p
         repoGroups.get(repoName).push(tab.id);
       }
     }
-    const sortedRepoGroups = [...repoGroups.entries()].sort((a, b) =>
-      a[0].localeCompare(b[0])
-    );
+    const sortedRepoGroups = [...repoGroups.entries()].sort((a, b) => a[0].localeCompare(b[0]));
     const colors = ["blue", "red", "yellow", "green", "pink", "purple", "cyan", "orange"];
     let colorIndex = 0;
     for (const [repoName, tabIds] of sortedRepoGroups) {
@@ -111,11 +103,8 @@ export async function consolidateTabs(chromeApi, currentWindowId, { groupBy = "p
         colorIndex++;
       }
     }
-
   } else {
-    const prTabIds = uniqueTabs
-      .filter((t) => prUrls.has(t.url))
-      .map((t) => t.id);
+    const prTabIds = uniqueTabs.filter((t) => prUrls.has(t.url)).map((t) => t.id);
     if (prTabIds.length > 0) {
       const existingGroups = await chromeApi.tabGroups.query({
         title: "PRs",
@@ -127,10 +116,7 @@ export async function consolidateTabs(chromeApi, currentWindowId, { groupBy = "p
         await chromeApi.tabs.group({ tabIds: prTabIds, groupId: openGroup.id });
       } else {
         const groupId = await chromeApi.tabs.group({ tabIds: prTabIds });
-        const title =
-          existingGroups.length > 0
-            ? `PRs ${new Date().toLocaleDateString()}`
-            : "PRs";
+        const title = existingGroups.length > 0 ? `PRs ${new Date().toLocaleDateString()}` : "PRs";
         await chromeApi.tabGroups.update(groupId, {
           title,
           color: "purple",

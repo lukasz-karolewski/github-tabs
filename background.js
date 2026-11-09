@@ -41,10 +41,7 @@ chrome.contextMenus.onClicked.addListener(async (info, tab) => {
   } else if (info.menuItemId === "groupByRepo") {
     chrome.storage.local.set({ groupBy: "repo" });
   } else if (info.menuItemId === "deduplicateNow") {
-    await deduplicateTabs(
-      chrome,
-      tab?.windowId ?? chrome.windows.WINDOW_ID_CURRENT,
-    );
+    await deduplicateTabs(chrome, tab?.windowId ?? chrome.windows.WINDOW_ID_CURRENT);
   }
 });
 
