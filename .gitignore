@@ -2,3 +2,4 @@ node_modules/
 dist/
 .vitest/
 .DS_Store
+.env

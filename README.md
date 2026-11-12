@@ -51,4 +51,10 @@ Before using it, add these repository secrets:
 - `CHROME_EXTENSION_CLIENT_SECRET`
 - `CHROME_EXTENSION_REFRESH_TOKEN`
 
+To set them up (or replace an expired refresh token), run the interactive wizard. It walks you through the Chrome Web Store, Google Cloud and OAuth Playground steps, verifies the credentials with Google, and writes the secrets with `gh`:
+
+```sh
+bin/dev/setup-chrome-web-store.sh
+```
+
 The workflow installs dependencies, runs the test suite, packages the extension into `dist/github-tabs.zip`, and then publishes that zip to the Chrome Web Store.
