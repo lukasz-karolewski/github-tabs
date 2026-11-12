@@ -1,0 +1,41 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 128 128">
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#4A90D9"/>
+      <stop offset="100%" stop-color="#2E5F99"/>
+    </linearGradient>
+    <linearGradient id="tab" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#FFFFFF" stop-opacity="0.95"/>
+      <stop offset="100%" stop-color="#E8EEF4" stop-opacity="0.95"/>
+    </linearGradient>
+  </defs>
+
+  <!-- Rounded square background -->
+  <rect x="4" y="4" width="120" height="120" rx="24" ry="24" fill="url(#bg)"/>
+
+  <!-- Three stacked tab shapes (back to front) to suggest multiple tabs being organized -->
+  <!-- Tab 3 (backmost) -->
+  <rect x="30" y="34" width="76" height="56" rx="6" ry="6" fill="#FFFFFF" opacity="0.3"/>
+
+  <!-- Tab 2 (middle) -->
+  <rect x="25" y="38" width="78" height="56" rx="6" ry="6" fill="#FFFFFF" opacity="0.5"/>
+
+  <!-- Tab 1 (front) - main card -->
+  <rect x="20" y="42" width="80" height="56" rx="6" ry="6" fill="url(#tab)"/>
+
+  <!-- Code brackets <> on the front tab -->
+  <g stroke="#2E5F99" stroke-width="4.5" stroke-linecap="round" stroke-linejoin="round" fill="none">
+    <!-- < bracket -->
+    <polyline points="46,58 34,70 46,82"/>
+    <!-- > bracket -->
+    <polyline points="74,58 86,70 74,82"/>
+    <!-- / slash -->
+    <line x1="64" y1="56" x2="56" y2="84"/>
+  </g>
+
+  <!-- Small arrow curving down-right to suggest "organize/sort" -->
+  <g transform="translate(88, 24)" stroke="#FFFFFF" stroke-width="3.5" stroke-linecap="round" stroke-linejoin="round" fill="none">
+    <path d="M0,0 C8,0 16,4 16,14"/>
+    <polyline points="10,10 16,14 20,8"/>
+  </g>
+</svg>
