@@ -40,7 +40,12 @@ For watch mode, run `npm test -- --watch`.
 
 ## Publishing
 
-This repository includes a GitHub Actions workflow at `.github/workflows/publish-chrome-extension.yml` that packages and publishes the extension to the Chrome Web Store on every push to `main` that changes a shipped file (`manifest.json`, `background.js`, `consolidate.js`, `deduplicate.js`, `icons/`, the bundle script, or the workflow itself). It can also be run manually.
+Publishing is manual, so pushing to `main` never releases anything. To release what's on `origin/main`, either:
+
+- run `bin/publish.sh`, which shows the shipped changes since the last release, asks for confirmation, starts the workflow and follows it until it finishes, or
+- open **Actions → Publish Chrome extension → Run workflow** on github.com and run it on `main`.
+
+The workflow (`.github/workflows/publish-chrome-extension.yml`) installs dependencies, runs the tests, packages the extension into `dist/github-tabs.zip`, uploads it to the Chrome Web Store, submits it for review, and then tags the released commit `v<version>`. Google usually reviews it within a day, and it goes live automatically once approved.
 
 Each run publishes version `<major>.<minor>.<run number>`, taking `<major>.<minor>` from `manifest.json`, because the Chrome Web Store requires a higher version on every upload. To bump the major or minor version, edit `manifest.json`.
 
@@ -56,5 +61,3 @@ To set them up (or replace an expired refresh token), run the interactive wizard
 ```sh
 bin/dev/setup-chrome-web-store.sh
 ```
-
-The workflow installs dependencies, runs the test suite, packages the extension into `dist/github-tabs.zip`, and then publishes that zip to the Chrome Web Store.

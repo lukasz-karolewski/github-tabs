@@ -1,18 +1,7 @@
 name: Publish Chrome extension
 
+# Publishing is always manual: run it from the Actions tab or with bin/publish.sh.
 on:
-  push:
-    branches:
-      - main
-    # Only publish when files shipped in the bundle (or the packaging itself) change.
-    paths:
-      - manifest.json
-      - background.js
-      - consolidate.js
-      - deduplicate.js
-      - icons/**
-      - scripts/build-bundle.mjs
-      - .github/workflows/publish-chrome-extension.yml
   workflow_dispatch:
 
 concurrency:
@@ -23,9 +12,15 @@ jobs:
   publish:
     runs-on: ubuntu-latest
     permissions:
-      contents: read
+      contents: write # push the release tag
 
     steps:
+      - name: Require main
+        if: github.ref != 'refs/heads/main'
+        run: |
+          echo "::error::Publish from main (this run is on ${GITHUB_REF})."
+          exit 1
+
       - name: Check out repository
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
 
@@ -44,6 +39,7 @@ jobs:
       # The Chrome Web Store requires a higher version on every upload, so stamp
       # <major>.<minor> from manifest.json with the workflow run number.
       - name: Set extension version
+        id: version
         env:
           RUN_NUMBER: ${{ github.run_number }}
         run: |
@@ -54,6 +50,7 @@ jobs:
             manifest.version = `${major}.${minor}.${process.env.RUN_NUMBER}`;
             fs.writeFileSync("manifest.json", JSON.stringify(manifest, null, 2) + "\n");
             console.log(`Publishing version ${manifest.version}`);
+            fs.appendFileSync(process.env.GITHUB_OUTPUT, `version=${manifest.version}\n`);
           '
 
       - name: Package extension
@@ -69,3 +66,12 @@ jobs:
           client_secret: ${{ secrets.CHROME_EXTENSION_CLIENT_SECRET }}
           refresh_token: ${{ secrets.CHROME_EXTENSION_REFRESH_TOKEN }}
           publish_target: public
+
+      # Tag only after the store accepted the upload, so every tag is a shipped version.
+      - name: Tag release
+        env:
+          TAG: v${{ steps.version.outputs.version }}
+        run: |
+          git tag "$TAG" "$GITHUB_SHA"
+          git push origin "refs/tags/$TAG"
+          echo "Tagged $TAG" >> "$GITHUB_STEP_SUMMARY"

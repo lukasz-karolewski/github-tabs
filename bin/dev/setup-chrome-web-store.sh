@@ -452,8 +452,8 @@ pause
 
 # ──────────────────────────────────────────────────────────────────────────
 stage "First publish"
-say "The workflow tests, packages and uploads a new version, then submits it for"
-say "public review. From now on it runs on every push to main touching shipped files."
+say "The workflow tests, packages and uploads a new version, submits it for public"
+say "review, then tags it. Later releases: bin/publish.sh (or Actions → Run workflow)."
 if confirm "Run the publish workflow on main now?"; then
   if gh workflow run "$WORKFLOW_FILE" --ref main >/dev/null 2>&1; then
     say "${GREEN}✓${RESET} Workflow triggered."
