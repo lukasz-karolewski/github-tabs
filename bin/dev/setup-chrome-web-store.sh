@@ -257,6 +257,60 @@ verify_refresh_token() {
   return 1
 }
 
+# Builds the consent URL for OUR client, so the Playground's default client
+# (407408718192…) can never end up issuing the token.
+auth_url() {
+  printf '%s?client_id=%s&redirect_uri=%s&response_type=code&scope=%s&access_type=offline&prompt=consent' \
+    "https://accounts.google.com/o/oauth2/v2/auth" "$CHROME_EXTENSION_CLIENT_ID" \
+    "https%3A%2F%2Fdevelopers.google.com%2Foauthplayground" \
+    "https%3A%2F%2Fwww.googleapis.com%2Fauth%2Fchromewebstore"
+}
+
+# code_from_url URL prints the URL-decoded ?code= value (or the input if it's a bare code).
+code_from_url() {
+  local code="$1"
+  [[ "$code" == *code=* ]] && { code="${code#*code=}"; code="${code%%&*}"; }
+  code="${code//+/ }"
+  printf '%b' "${code//%/\\x}"
+}
+
+# Opens consent for our client, exchanges the pasted code, saves the refresh token.
+obtain_refresh_token() {
+  local response code
+  while true; do
+    open_url "$(auth_url)"
+    step "Sign in with the Google account that owns the store listing."
+    note "    On 'Google hasn't verified this app': Advanced → Go to … (unsafe) → Continue."
+    note "    On 'Access blocked: … has not completed the Google verification process':"
+    note "    the app is still in Testing. Publish it here, then retry:"
+    note "    https://console.cloud.google.com/auth/audience?project=$GCP_PROJECT_ID"
+    step "You land on the OAuth Playground with ?code=… in the address bar."
+    step "Don't click anything there: copy the whole address-bar URL."
+    note "    (Codes expire in ~10 minutes and work once.)"
+    ask AUTH_REDIRECT_URL "Paste the URL:" || return 1
+    code=$(code_from_url "$AUTH_REDIRECT_URL")
+    response=$(curl -sS https://oauth2.googleapis.com/token \
+      --data-urlencode "client_id=$CHROME_EXTENSION_CLIENT_ID" \
+      --data-urlencode "client_secret=$CHROME_EXTENSION_CLIENT_SECRET" \
+      --data-urlencode "code=$code" \
+      --data-urlencode "redirect_uri=$PLAYGROUND_URL" \
+      --data-urlencode "grant_type=authorization_code" 2>&1) || true
+    CHROME_EXTENSION_REFRESH_TOKEN=$(printf '%s' "$response" | sed -nE 's/.*"refresh_token" *: *"([^"]+)".*/\1/p' | head -n1)
+    if [[ -n "$CHROME_EXTENSION_REFRESH_TOKEN" ]]; then
+      write_env CHROME_EXTENSION_REFRESH_TOKEN "$CHROME_EXTENSION_REFRESH_TOKEN"
+      if [[ "$response" == *refresh_token_expires_in* ]]; then
+        warn "Google says this token expires in 7 days: the consent screen is still"
+        warn "in 'Testing'. Audience → 'Publish app', then redo this stage."
+        confirm "Redo it now?" && continue
+      fi
+      return 0
+    fi
+    warn "Google didn't return a refresh token:"
+    note "$(printf '%s' "$response" | grep -E '"error(_description)?"' | tr -s ' \n' ' ' || printf '%s' "$response")"
+    confirm "Try again?" || return 1
+  done
+}
+
 banner "Chrome Web Store publishing for $GH_REPO"
 
 # ──────────────────────────────────────────────────────────────────────────
@@ -353,19 +407,12 @@ write_env CHROME_EXTENSION_CLIENT_SECRET "$CHROME_EXTENSION_CLIENT_SECRET"
 pause
 
 # ──────────────────────────────────────────────────────────────────────────
-stage "Refresh token (OAuth Playground)"
-open_url "$PLAYGROUND_URL"
-step "Click the gear icon (top right), tick 'Use your own OAuth credentials',"
-step "and paste the Client ID and Client secret from the previous stage."
-step "In 'Step 1', paste this into 'Input your own scopes', then 'Authorize APIs':"
-note "    $CWS_SCOPE"
-step "Sign in with the Google account that owns the store listing."
-note "    On 'Google hasn't verified this app': Advanced → Go to … (unsafe) → Continue."
-step "In 'Step 2', click 'Exchange authorization code for tokens'."
-step "Copy the 'Refresh token' value (starts with 1//)."
-ask_until CHROME_EXTENSION_REFRESH_TOKEN "Paste the refresh token (hidden):" '^1//[A-Za-z0-9_-]+$' \
-  "Refresh tokens start with 1// (don't paste the access token, which starts ya29.)." secret
-write_env CHROME_EXTENSION_REFRESH_TOKEN "$CHROME_EXTENSION_REFRESH_TOKEN"
+stage "Refresh token"
+say "You approve access in the browser; the wizard swaps the code for a refresh token."
+if ! obtain_refresh_token; then
+  SKIPPED+=("refresh token: re-run this wizard")
+  warn "No refresh token yet: the next stage will fail."
+fi
 pause
 
 # ──────────────────────────────────────────────────────────────────────────
@@ -378,13 +425,12 @@ while true; do
     say "${GREEN}✓${RESET} Google issued an access token with the Chrome Web Store scope."
     break
   fi
-  note "invalid_client → wrong Client ID/secret. invalid_grant → token revoked,"
-  note "expired, or issued for a different client."
-  confirm "Re-enter the client secret and refresh token?" || break
+  note "invalid_client → wrong Client ID/secret. unauthorized_client → token issued"
+  note "for a different client. invalid_grant → token revoked or expired."
+  confirm "Re-enter the client secret and get a fresh refresh token?" || break
   ask_secret CHROME_EXTENSION_CLIENT_SECRET "Client secret (hidden):"
-  ask_secret CHROME_EXTENSION_REFRESH_TOKEN "Refresh token (hidden):"
   write_env CHROME_EXTENSION_CLIENT_SECRET "$CHROME_EXTENSION_CLIENT_SECRET"
-  write_env CHROME_EXTENSION_REFRESH_TOKEN "$CHROME_EXTENSION_REFRESH_TOKEN"
+  obtain_refresh_token || true
 done
 note "The extension ID can't be checked here: the first CI run confirms it."
 pause
